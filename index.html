@@ -28,6 +28,7 @@
         let score = 0;
         let boat = { x: canvas.width / 2, y: canvas.height / 2, width: 20, height: 40 };
         let people = [];
+        let isUsingGyro = false;
 
         function createPerson() {
             return {
@@ -87,7 +88,7 @@
             requestAnimationFrame(gameLoop);
         }
 
-        window.addEventListener('deviceorientation', (event) => {
+        function handleOrientation(event) {
             const tiltLR = event.gamma;
             const tiltFB = event.beta;
 
@@ -96,7 +97,41 @@
 
             boat.x = Math.max(0, Math.min(canvas.width - boat.width, boat.x));
             boat.y = Math.max(0, Math.min(canvas.height - boat.height, boat.y));
-        });
+        }
+
+        function handleTouch(event) {
+            if (!isUsingGyro) {
+                const touch = event.touches[0];
+                boat.x = touch.clientX - boat.width / 2;
+                boat.y = touch.clientY - boat.height / 2;
+
+                boat.x = Math.max(0, Math.min(canvas.width - boat.width, boat.x));
+                boat.y = Math.max(0, Math.min(canvas.height - boat.height, boat.y));
+            }
+        }
+
+        function requestGyroPermission() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            isUsingGyro = true;
+                            window.addEventListener('deviceorientation', handleOrientation);
+                        } else {
+                            console.log('Gyroscope permission denied');
+                        }
+                    })
+                    .catch(console.error);
+            } else if (window.DeviceOrientationEvent) {
+                isUsingGyro = true;
+                window.addEventListener('deviceorientation', handleOrientation);
+            } else {
+                console.log('Gyroscope not supported');
+            }
+        }
+
+        canvas.addEventListener('touchstart', requestGyroPermission);
+        canvas.addEventListener('touchmove', handleTouch);
 
         gameLoop();
     </script>
