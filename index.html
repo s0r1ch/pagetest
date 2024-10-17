@@ -1,47 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>title</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background-color: #f0f0f0;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-
-  .container {
-    text-align: center;
-  }
-
-  .animated-text {
-    font-size: 48px;
-    font-weight: bold;
-    color: #333;
-    text-transform: uppercase;
-    overflow: hidden;
-    white-space: nowrap;
-    border-right: .15em solid orange;
-    animation: typing 5s steps(40) infinite;
-  }
-
-  @keyframes typing {
-    from { width: 0 }
-    to { width: 100% }
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Drawing Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.15/paper-full.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
+    <canvas id="canvas" resize></canvas>
+    <div id="controls">
+        <button id="clearBtn">Clear</button>
+        <button id="saveBtn">Save</button>
+    </div>
 
-<div class="container">
-  <h1 class="animated-text">wen meetup, bro?</h1>
-</div>
+    <script>
+        // Инициализация Telegram Mini App
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
+        // Инициализация Paper.js
+        paper.install(window);
+        paper.setup('canvas');
+
+        let path;
+
+        function onMouseDown(event) {
+            path = new Path();
+            path.strokeColor = 'black';
+            path.strokeWidth = 2;
+            path.add(event.point);
+        }
+
+        function onMouseDrag(event) {
+            path.add(event.point);
+        }
+
+        function onMouseUp(event) {
+            path.simplify();
+        }
+
+        // Очистка холста
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            paper.project.clear();
+        });
+
+        // Сохранение рисунка
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const svg = paper.project.exportSVG({asString: true});
+            const blob = new Blob([svg], {type: 'image/svg+xml;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            
+            // Отправка SVG файла в Telegram
+            tg.sendData(url);
+        });
+
+        // Установка обработчиков событий
+        const tool = new Tool();
+        tool.onMouseDown = onMouseDown;
+        tool.onMouseDrag = onMouseDrag;
+        tool.onMouseUp = onMouseUp;
+    </script>
 </body>
 </html>
