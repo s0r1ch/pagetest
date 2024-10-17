@@ -3,100 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Drawing App</title>
+    <title>Sea Rescue</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            padding: 0;
+            overflow: hidden;
         }
-        #canvas {
-            border: 1px solid #000;
-            background-color: white;
-        }
-        #controls {
-            position: fixed;
-            top: 10px;
-            left: 10px;
+        canvas {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div id="controls">
-        <input type="color" id="colorPicker" value="#000000">
-        <input type="range" id="lineWidth" min="1" max="20" value="5">
-        <button id="clearCanvas">Clear</button>
-        <button id="saveSVG">Save as SVG</button>
-    </div>
-    <svg id="canvas" width="800" height="600"></svg>
-
+    <canvas id="gameCanvas"></canvas>
     <script>
-        const svg = document.getElementById('canvas');
-        const colorPicker = document.getElementById('colorPicker');
-        const lineWidth = document.getElementById('lineWidth');
-        const clearButton = document.getElementById('clearCanvas');
-        const saveSVGButton = document.getElementById('saveSVG');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-        let isDrawing = false;
-        let lastX = 0;
-        let lastY = 0;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-        function startDrawing(e) {
-            isDrawing = true;
-            [lastX, lastY] = [e.offsetX, e.offsetY];
+        let score = 0;
+        let boat = { x: canvas.width / 2, y: canvas.height / 2, width: 20, height: 40 };
+        let people = [];
+
+        function createPerson() {
+            return {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                width: 10,
+                height: 10
+            };
         }
 
-        function draw(e) {
-            if (!isDrawing) return;
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', lastX);
-            line.setAttribute('y1', lastY);
-            line.setAttribute('x2', e.offsetX);
-            line.setAttribute('y2', e.offsetY);
-            line.setAttribute('stroke', colorPicker.value);
-            line.setAttribute('stroke-width', lineWidth.value);
-            line.setAttribute('stroke-linecap', 'round');
-            svg.appendChild(line);
-            [lastX, lastY] = [e.offsetX, e.offsetY];
+        function drawBoat() {
+            ctx.fillStyle = 'brown';
+            ctx.fillRect(boat.x, boat.y, boat.width, boat.height);
         }
 
-        function stopDrawing() {
-            isDrawing = false;
+        function drawPerson(person) {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(person.x, person.y, person.width, person.height);
         }
 
-        function clearCanvas() {
-            while (svg.firstChild) {
-                svg.removeChild(svg.firstChild);
+        function drawSea() {
+            ctx.fillStyle = 'lightblue';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawScore() {
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+        }
+
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function gameLoop() {
+            drawSea();
+            drawBoat();
+            people.forEach(drawPerson);
+            drawScore();
+
+            people = people.filter(person => {
+                if (checkCollision(boat, person)) {
+                    score++;
+                    return false;
+                }
+                return true;
+            });
+
+            if (Math.random() < 0.02 && people.length < 10) {
+                people.push(createPerson());
             }
+
+            requestAnimationFrame(gameLoop);
         }
 
-        function saveAsSVG() {
-            const clone = svg.cloneNode(true);
-            if (!clone.getAttribute('viewBox')) {
-                clone.setAttribute('viewBox', `0 0 ${clone.getAttribute('width')} ${clone.getAttribute('height')}`);
-            }
-            const svgData = new XMLSerializer().serializeToString(clone);
-            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
-            const svgUrl = URL.createObjectURL(svgBlob);
-            
-            const downloadLink = document.createElement('a');
-            downloadLink.href = svgUrl;
-            downloadLink.download = 'drawing.svg';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-        }
+        window.addEventListener('deviceorientation', (event) => {
+            const tiltLR = event.gamma;
+            const tiltFB = event.beta;
 
-        svg.addEventListener('mousedown', startDrawing);
-        svg.addEventListener('mousemove', draw);
-        svg.addEventListener('mouseup', stopDrawing);
-        svg.addEventListener('mouseout', stopDrawing);
+            boat.x += tiltLR * 0.5;
+            boat.y += tiltFB * 0.5;
 
-        clearButton.addEventListener('click', clearCanvas);
-        saveSVGButton.addEventListener('click', saveAsSVG);
+            boat.x = Math.max(0, Math.min(canvas.width - boat.width, boat.x));
+            boat.y = Math.max(0, Math.min(canvas.height - boat.height, boat.y));
+        });
+
+        gameLoop();
     </script>
 </body>
 </html>
