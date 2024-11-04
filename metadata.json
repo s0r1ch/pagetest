@@ -1,0 +1,12 @@
+{
+    "name": "Abu Five",
+    "symbol": "Abu5",
+    "description": "My description",
+    "decimals": 9,
+    "image": "https://s0r1ch.github.io/test.png",
+    "social": {
+        "twitter": "https://twitter.com/your_twitter",
+        "telegram": "https://t.me/your_telegram",
+        "website": "https://your_website.com"
+    }
+}
